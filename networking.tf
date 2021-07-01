@@ -48,7 +48,7 @@ resource "aws_subnet" "shan_public_subnet" {
    
  resource "aws_route_table_association" "shan_public_association"{
    count =var.public_sn_count
-   subnet_id = aws_subnet.shan_public_subnet.*.id[count.iindex]
+   subnet_id = aws_subnet.shan_public_subnet.*.id[count.index]
    route_table_id = aws_route_table.shan_public_rt.id
  }
     
