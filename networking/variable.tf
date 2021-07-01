@@ -17,3 +17,7 @@ variable "public_sn_count" {
 variable "public_sn_count" {
   type = number
 }
+
+variable "max_subnets" {
+  type = number
+}
