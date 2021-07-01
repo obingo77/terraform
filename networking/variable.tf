@@ -14,7 +14,7 @@ variable "public_sn_count" {
   type =number
 }
 
-variable "public_sn_count" {
+variable "private_sn_count" {
   type = number
 }
 
