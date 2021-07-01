@@ -26,7 +26,7 @@ resource "aws_subnet" "shan_public_subnet" {
   vpc_id = aws_vpc.shan_vpc.id
   cidr_block = var.public_cdrs[count.index]
   map_public_ip_on_launch = true
-  availabity_zone = data.aws_availability_zones.available[count.index]
+  availabity_zone = random_shuffle.az_list[count.index]
   
   tags ={
     Name = "shan_public_$(count.index + 1)"
@@ -37,7 +37,7 @@ resource "aws_subnet" "shan_public_subnet" {
   vpc_id = aws_vpc.shan_vpc.id
   cidr_block = var.private_cdrs[count.index]
   map_public_ip_on_launch false
-  availabity_zone = data.aws_availability_zones.available[count.index]
+  availabity_zone = random_shuffle.az_list[count.index]
   
   tags ={
     Name = "shan_private_$(count.index + 1)"
