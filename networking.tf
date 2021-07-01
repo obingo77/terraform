@@ -13,7 +13,7 @@ resource "aws_vpc" "shan_vpc" {
 }
 
 resource "aws_subnet" "shan_public_subnet" {
-  count = length(var.public_cdrs)
+  count = var.public_sn_count
   vpc_id = aws_vpc.shan_vpc.id
   cidr_block = var.public_cdrs[count.index]
   map_public_ip_on_launch = true
@@ -21,4 +21,15 @@ resource "aws_subnet" "shan_public_subnet" {
   
   tags ={
     Name = "shan_public_$(count.index + 1)"
+  }
+  
+  resource "aws_subnet" "shan_private_subnet" {
+  count = var.private_sn_count
+  vpc_id = aws_vpc.shan_vpc.id
+  cidr_block = var.private_cdrs[count.index]
+  map_public_ip_on_launch false
+  availabity_zone =[count.index]
+  
+  tags ={
+    Name = "shan_private_$(count.index + 1)"
   }
