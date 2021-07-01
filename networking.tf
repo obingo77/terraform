@@ -20,6 +20,9 @@ resource "aws_vpc" "shan_vpc" {
     Name = "shan_vpc-${random_pet.name.id}"
   }
 }
+lifecycle{
+  create_before_destroy = true
+}
 
 resource "aws_subnet" "shan_public_subnet" {
   count = var.public_sn_count
@@ -30,9 +33,9 @@ resource "aws_subnet" "shan_public_subnet" {
   
   tags ={
     Name = "shan_public_$(count.index + 1)"
-  }
+ }
   
-  resource "aws_subnet" "shan_private_subnet" {
+ resource "aws_subnet" "shan_private_subnet" {
   count = var.private_sn_count
   vpc_id = aws_vpc.shan_vpc.id
   cidr_block = var.private_cdrs[count.index]
@@ -41,4 +44,54 @@ resource "aws_subnet" "shan_public_subnet" {
   
   tags ={
     Name = "shan_private_$(count.index + 1)"
+ }
+   
+ resource "aws_route_table_association" "shan_public_association"{
+   count =var.public_sn_count
+   subnet_id = aws_subnet.shan_public_subnet.*.id[count.iindex]
+   route_table_id = aws_route_table.shan_public_rt.id
+ }
+    
+    
+ resource "aws_internet_gateway" "shan_internet_gateway" {
+    vpc_id = aws_vpc.shan_vpc.id
+    
+    tags = {
+      Name = "shan_igw"
+    
+    }
+  
+} 
+
+ resource "aws_route_table"  "shan_public_rt"
+       vpc_id = aws_vpc.shan_vpc.id
+    
+    tags = {
+      Name = "shan_public"
+    
+    }
+  
+} 
+  
+ resource "aws_route"  "default_route"
+     route_table_id = aws_route_table.shan_public_rt.id
+     destination_cidr_block = "0.0.0.0./0"
+     gateway_id = aws_internet_gateway.shan_internet_gateway.id
+    
+   
+     }
+  
+} 
+
+resource "aws_default_route_table" "shan_private_rt" {
+  default_route_table_id =aws_vpc_shan_vpc.default_route_table.id
+  
+  tags ={
+    Name = "shan_private"
   }
+
+}
+    
+   
+    
+
