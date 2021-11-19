@@ -31,7 +31,7 @@ module "vpc" {
   public_subnets  = slice(var.public_subnet_cidr_blocks, 0, var.public_subnet_count)
 
   enable_vpn_gateway = var.enable_vpn_gateway
-
+  enable_nat_gateway = false
 }
 
 
@@ -43,6 +43,8 @@ module "app_security_group" {
   description = "security group for web-servers with  HTTP ports open within VPC"
   vpc_id      = module.vpc.vpc_id
 
+  //  ingress_cidr_blocks = module.vpc.public_subnet_cidr_blocks
+
   tags = local.tags
 
 }
@@ -51,10 +53,10 @@ module "lb_security_group" {
   source  = "terraform-aws-modules/security-group/aws//modules/web"
   version = "3.17.0"
 
-  name   = "lb-sg-${local.name_suffix}"
-  vpc_id = module.vpc.vpc_id
-
-  tags = local.tags
+  name                = "lb-sg-${local.name_suffix}"
+  vpc_id              = module.vpc.vpc_id
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  tags                = local.tags
 
 }
 
@@ -97,14 +99,21 @@ module "elb_http" {
 }
 
 resource "aws_instance" "web" {
-
+  count                       = 1
   ami                         = lookup(var.aws_amis, var.aws_region)
   instance_type               = "t2.micro"
- # subnet_id                   = aws_subnet.subnet_public.id
- #TO DO-- vpc_security_group_ids      = [aws_security_group.sg_8080.id]
-  associate_public_ip_address = true
-  #TO DO user_data                   = templatefile("user_data.tftpl", { department = var.user_department, name = var.user_name })
+  subnet_id                   = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
+  vpc_security_group_ids      = [module.app_security_group.this_security_group_id]
+  associate_public_ip_address = false
+  user_data                   = <<-EOF
+    #!/bin/bash
+    sudo yum update -y
+    sudo yum install -y amazon-linux-extras
+    sudo amazon-linux-extras enable httpd_modules
+    sudo yum install httpd -y
+      sudo systemctl enable httpd
+   sudo systemctl start httpd
+   echo "<html><body><div>This App was developed by Obingo77</div></html> > /var/www/html/index.html"
+    EOF
 }
-
-
 
