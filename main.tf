@@ -1,3 +1,5 @@
+
+#----Root Main----
 provider "aws" {
   region = var.aws_region
 }
@@ -43,7 +45,7 @@ module "app_security_group" {
   description = "security group for web-servers with  HTTP ports open within VPC"
   vpc_id      = module.vpc.vpc_id
 
-  //  ingress_cidr_blocks = module.vpc.public_subnet_cidr_blocks
+  //ingress_cidr_blocks = var.module.vpc.public_subnet_cidr_blocks
 
   tags = local.tags
 
@@ -56,7 +58,8 @@ module "lb_security_group" {
   name                = "lb-sg-${local.name_suffix}"
   vpc_id              = module.vpc.vpc_id
   ingress_cidr_blocks = ["0.0.0.0/0"]
-  tags                = local.tags
+
+  tags = local.tags
 
 }
 
@@ -104,7 +107,7 @@ resource "aws_instance" "web" {
   instance_type               = "t2.micro"
   subnet_id                   = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
   vpc_security_group_ids      = [module.app_security_group.this_security_group_id]
-  associate_public_ip_address = false
+  associate_public_ip_address = true
   user_data                   = <<-EOF
     #!/bin/bash
     sudo yum update -y
@@ -117,3 +120,60 @@ resource "aws_instance" "web" {
     EOF
 }
 
+
+resource "aws_security_group" "allow_elastic" {
+  name        = "allow_elastic"
+  description = "Allow elastic-stack inbound traffic"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description      = "from elastic"
+    from_port        = 9200
+    to_port          = 9200
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    
+  }
+  
+  # kibana
+    ingress {
+    description      = " from kibana"
+    from_port        = 5601
+    to_port          =5601
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    
+  }
+  
+  # Logstash
+     ingress {
+    description      = " from Logstash"
+    from_port        = 5043
+    to_port          =5043
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    
+  }
+  
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    
+  }
+  
+       ingress {
+    description      = " ssh"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    
+  }
+
+  tags = {
+    Name = "allow_elk"
+  }
+}
