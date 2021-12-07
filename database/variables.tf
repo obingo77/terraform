@@ -1,7 +1,7 @@
 variable "create" {
   description = "Whether to create this resource or not?"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "identifier" {
@@ -298,7 +298,7 @@ variable "performance_insights_enabled" {
 variable "performance_insights_retention_period" {
   description = "The amount of time in days to retain Performance Insights data. Either 7 (7 days) or 731 (2 years)."
   type        = number
-  default     = 7
+  default     = 0
 }
 
 variable "performance_insights_kms_key_id" {

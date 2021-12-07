@@ -41,7 +41,7 @@ module "app_security_group" {
   source  = "terraform-aws-modules/security-group/aws//modules/web"
   version = "3.17.0"
 
-  name        = "web-sg-${local.name_suffix}"
+name        = "web-sg-${local.name_suffix}"
   description = "security group for web-servers with  HTTP ports open within VPC"
   vpc_id      = module.vpc.vpc_id
 
@@ -51,63 +51,15 @@ module "app_security_group" {
 
 }
 
-module "lb_security_group" {
-  source  = "terraform-aws-modules/security-group/aws//modules/web"
-  version = "3.17.0"
 
-  name                = "lb-sg-${local.name_suffix}"
-  vpc_id              = module.vpc.vpc_id
-  ingress_cidr_blocks = ["0.0.0.0/0"]
 
-  tags = local.tags
-
-}
-
-resource "random_string" "lb_id" {
-  length  = 3
-  special = false
-}
-module "elb_http" {
-  source  = "terraform-aws-modules/elb/aws"
-  version = "2.4.0"
-
-  # Ensure load balancer name is unique
-  name = "lb-${random_string.lb_id.result}-${local.name_suffix}"
-
-  internal = false
-
-  security_groups = [module.lb_security_group.this_security_group_id]
-  subnets         = module.vpc.public_subnets
-
-  //number_of_instances = length(aws_instances.app)
-  //instances           = aws_instances.app.*.id
-
-  listener = [{
-    instance_port     = "80"
-    instance_protocol = "HTTP"
-    lb_port           = "80"
-    lb_protocol       = "HTTP"
-  }]
-
-  health_check = {
-    target              = "HTTP:80/index.html"
-    interval            = 10
-    healthy_threshold   = 3
-    unhealthy_threshold = 10
-    timeout             = 5
-  }
-
-  tags = local.tags
-
-}
-
-resource "aws_instance" "web" {
+resource "aws_instance" "web_app" {
   count                       = 1
   ami                         = lookup(var.aws_amis, var.aws_region)
   instance_type               = "t2.micro"
   subnet_id                   = module.vpc.private_subnets[count.index % length(module.vpc.private_subnets)]
   vpc_security_group_ids      = [module.app_security_group.this_security_group_id]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
   user_data                   = <<-EOF
     #!/bin/bash
     sudo yum update -y
@@ -127,53 +79,78 @@ resource "aws_security_group" "allow_elastic" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    description      = "from elastic"
-    from_port        = 9200
-    to_port          = 9200
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    
+    description = "from elastic"
+    from_port   = 9200
+    to_port     = 9200
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
   }
-  
+
   # kibana
-    ingress {
-    description      = " from kibana"
-    from_port        = 5601
-    to_port          =5601
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    
+  ingress {
+    description = " from kibana"
+    from_port   = 5601
+    to_port     = 5601
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
   }
-  
+
   # Logstash
-     ingress {
-    description      = " from Logstash"
-    from_port        = 5043
-    to_port          =5043
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    
+  ingress {
+    description = " from Logstash"
+    from_port   = 5043
+    to_port     = 5043
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
   }
-  
+
 
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+
   }
-  
-       ingress {
-    description      = " ssh"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    
+
+  ingress {
+    description = " ssh"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
   }
 
   tags = {
     Name = "allow_elk"
   }
+}
+resource "aws_security_group" "web_app_alb" {
+
+  name   = "lb-sg-${local.name_suffix}"
+  vpc_id = module.vpc.vpc_id
+
+  ingress {
+    description = " access to web app"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+  tags = local.tags
+
+
+}
+
+
+
+resource "random_string" "lb_id" {
+  length  = 3
+  special = false
 }
