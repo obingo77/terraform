@@ -2,7 +2,7 @@ resource "aws_lb" "web_app" {
   name               = "lb-${random_string.lb_id.result}-${local.name_suffix}"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.web_app_alb.id]
+  security_groups    = [module.aws_security_group.web_app_alb.id]
   subnets            = module.vpc.public_subnets
 
   tags = local.tags
