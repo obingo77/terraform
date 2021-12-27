@@ -41,11 +41,11 @@ module "app_security_group" {
   source  = "terraform-aws-modules/security-group/aws//modules/web"
   version = "3.17.0"
 
-name        = "web-sg-${local.name_suffix}"
+  name        = "web-sg-${local.name_suffix}"
   description = "security group for web-servers with  HTTP ports open within VPC"
   vpc_id      = module.vpc.vpc_id
 
-  //ingress_cidr_blocks = var.module.vpc.public_subnet_cidr_blocks
+  ingress_cidr_blocks = ["10.10.0.0/16"]
 
   tags = local.tags
 
@@ -154,7 +154,7 @@ resource "random_string" "lb_id" {
   length  = 3
   special = false
 }
-  
+
 module "lb_security_group" {
   source  = "terraform-aws-modules/security-group/aws//modules/web"
   version = "3.17.0"
@@ -164,4 +164,4 @@ module "lb_security_group" {
   vpc_id      = module.vpc.vpc_id
 
   ingress_cidr_blocks = ["0.0.0.0/0"]
-}  
+}

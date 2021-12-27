@@ -1,5 +1,6 @@
 resource "aws_lb" "web_app" {
-  name               = "lb-${random_string.lb_id.result}-${local.name_suffix}"
+  //name               = "lb-${random_string.lb_id.result}-${local.name_suffix}"
+  name               = trimsuffix(substr(replace(join("-", ["lb", random_string.lb_id.result, ]), "/[^a-zA-Z0-9-]/", ""), 0, 32), "-")
   internal           = false
   load_balancer_type = "application"
   security_groups    = [module.lb_security_group.this_security_group_id]
@@ -28,7 +29,6 @@ resource "aws_lb_target_group" "web_app" {
   port                 = 80
   protocol             = "HTTP"
   vpc_id               = module.vpc.vpc_id
-  target_type          = "ip"
   deregistration_delay = 10
   health_check {
     path                = "/"
@@ -38,4 +38,11 @@ resource "aws_lb_target_group" "web_app" {
     interval            = 60
   }
   tags = local.tags
+}
+
+resource "aws_lb_target_group_attachment" "web_app" {
+  target_group_arn = aws_lb_target_group.web_app.arn
+  target_id        = aws_instance.web_app[count.index].id
+  count            = length(aws_instance.web_app)
+  port             = 80
 }
